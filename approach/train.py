@@ -1,4 +1,5 @@
-import gym
+import gymnasium as gym
+import gymnasium_robotics
 import random
 import numpy as np
 import argparse
@@ -27,7 +28,7 @@ def ensure_shared_grads(model, shared_model):
 def train(rank, args, shared_model, counter, lock, optimizer=None):
     FloatTensor = torch.cuda.FloatTensor if args.use_cuda else torch.FloatTensor
     
-    env = gym.make("FetchPickAndPlace-v1")
+    env = gym.make("FetchPickAndPlace-v3")
     env2 = gym.wrappers.FlattenDictWrapper(env, dict_keys=['observation', 'desired_goal'])
 
     model = Actor()
