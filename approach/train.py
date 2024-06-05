@@ -66,7 +66,8 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
         
         model.load_state_dict(shared_model.state_dict())
         #state_inp = torch.from_numpy(env2.observation(lastObs)).type(FloatTensor)
-        state_inp = torch.from_numpy(lastObs['observation']).type(FloatTensor)
+        lastObs = np.concatenate([lastObs['observation'], lastObs[''desired_goal]])
+        state_inp = torch.from_numpy(lastObs).type(FloatTensor)
         criterion = nn.MSELoss()
         
         while np.linalg.norm(object_oriented_goal) >= 0.015 and timeStep <= env._max_episode_steps:
@@ -95,7 +96,8 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
             object_rel_pos = obsDataNew['observation'][6:9]
             #obsDataNew = obsDataNew.flatten()
             #state_inp = torch.from_numpy(env2.observation(obsDataNew)).type(FloatTensor)
-            state_inp = torch.from_numpy(obsDataNew['observation'].flatten()).type(FloatTensor)
+            obsDataNew = np.concatenate([ obsDataNew['observation'], obsDataNew['desired_goal'] ])
+            state_inp = torch.from_numpy(obsDataNew).type(FloatTensor)
             if timeStep >= env._max_episode_steps: break
 
         while np.linalg.norm(object_rel_pos) >= 0.005 and timeStep <= env._max_episode_steps :
@@ -175,7 +177,8 @@ def test(rank, args, shared_model, counter):
             object_oriented_goal[2] += 0.03 # first make the gripper go slightly above the object    
             timeStep = 0
             #state_inp = torch.from_numpy(env2.observation(lastObs)).type(FloatTensor)
-            state_inp = torch.from_numpy(lastObs['observation'].flatten()).type(FloatTensor)
+            lastObs = np.concatenate([ lastObs['observation'], lastObs['desired_goal'] ])
+            state_inp = torch.from_numpy(lastObs).type(FloatTensor)
             model.load_state_dict(shared_model.state_dict())
             Ratio, first_step =[], []
             while np.linalg.norm(object_oriented_goal) >= 0.015 and timeStep <= env._max_episode_steps:
@@ -197,7 +200,8 @@ def test(rank, args, shared_model, counter):
                 objectPos = obsDataNew['observation'][3:6]
                 object_rel_pos = obsDataNew['observation'][6:9]
                 #state_inp = torch.from_numpy(env2.observation(obsDataNew)).type(FloatTensor)
-                state_inp = torch.from_numpy(obsDataNew['observation'].flatten()).type(FloatTensor)
+                obsDataNew = np.concatenate([ obsDataNew['observation'], obsDataNew['desired_goal'] ])
+                state_inp = torch.from_numpy(obsDataNew).type(FloatTensor)
                 if timeStep >= env._max_episode_steps: break
 
             while np.linalg.norm(object_rel_pos) >= 0.005 and timeStep <= env._max_episode_steps :
