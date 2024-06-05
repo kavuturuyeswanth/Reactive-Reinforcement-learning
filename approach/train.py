@@ -29,7 +29,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
     FloatTensor = torch.cuda.FloatTensor if args.use_cuda else torch.FloatTensor
     
     env = gym.make("FetchPickAndPlace-v3")
-    env2 = gym.wrappers.FlattenDictWrapper(env, dict_keys=['observation', 'desired_goal'])
+    #env2 = gym.wrappers.FlattenObservation(env)
 
     model = Actor()
        
@@ -65,7 +65,9 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
             torch.save(shared_model.state_dict(), args.save_path1)
         
         model.load_state_dict(shared_model.state_dict())
-        state_inp = torch.from_numpy(env2.observation(lastObs)).type(FloatTensor)
+        #state_inp = torch.from_numpy(env2.observation(lastObs)).type(FloatTensor)
+        lastObs = lastObs.flatten()
+        state_inp = torch.from_numpy(lastObs).type(FloatTensor)
         criterion = nn.MSELoss()
         
         while np.linalg.norm(object_oriented_goal) >= 0.015 and timeStep <= env._max_episode_steps:
@@ -88,11 +90,13 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
             object_oriented_goal[2] += 0.03
            
             action[3] = 0.05
-            obsDataNew, reward, done, info = env.step(action)
+            obsDataNew, reward, done,_,  info = env.step(action)
             timeStep += 1
             objectPos = obsDataNew['observation'][3:6]
             object_rel_pos = obsDataNew['observation'][6:9]
-            state_inp = torch.from_numpy(env2.observation(obsDataNew)).type(FloatTensor)
+            #obsDataNew = obsDataNew.flatten()
+            #state_inp = torch.from_numpy(env2.observation(obsDataNew)).type(FloatTensor)
+            state_inp = torch.from_numpy(obsDataNew['observation'].flatten()).type(FloatTensor)
             if timeStep >= env._max_episode_steps: break
 
         while np.linalg.norm(object_rel_pos) >= 0.005 and timeStep <= env._max_episode_steps :
@@ -104,7 +108,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
             action[4] = obsDataNew['observation'][13]/6
             action[3] = -0.02
 
-            obsDataNew, reward, done, info = env.step(action)
+            obsDataNew, reward, done,_, info = env.step(action)
             timeStep += 1
 
             objectPos = obsDataNew['observation'][3:6]
@@ -118,7 +122,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
                 action[i] = (goal - objectPos)[i]*6
 
             action[3] = -0.01
-            obsDataNew, reward, done, info = env.step(action)
+            obsDataNew, reward, done,_, info = env.step(action)
             timeStep += 1
 
             objectPos = obsDataNew['observation'][3:6]
@@ -130,7 +134,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
             action = [0, 0, 0, 0, 0, 0]
             action[3] = -0.01 # keep the gripper closed
 
-            obsDataNew, reward, done, info = env.step(action)
+            obsDataNew, reward, done,_, info = env.step(action)
             timeStep += 1
 
             objectPos = obsDataNew['observation'][3:6]
@@ -142,7 +146,7 @@ def test(rank, args, shared_model, counter):
     
     FloatTensor = torch.cuda.FloatTensor if args.use_cuda else torch.FloatTensor
     env = gym.make("FetchPickAndPlace-v1")
-    env2 = gym.wrappers.FlattenDictWrapper(env, dict_keys=['observation', 'desired_goal'])
+    #env2 = gym.wrappers.FlattenObservation(env)
 
     model = Actor()
     if args.use_cuda:
@@ -171,7 +175,8 @@ def test(rank, args, shared_model, counter):
             object_oriented_goal = object_rel_pos.copy()
             object_oriented_goal[2] += 0.03 # first make the gripper go slightly above the object    
             timeStep = 0
-            state_inp = torch.from_numpy(env2.observation(lastObs)).type(FloatTensor)
+            #state_inp = torch.from_numpy(env2.observation(lastObs)).type(FloatTensor)
+            state_inp = torch.from_numpy(lastObs['observation'].flatten()).type(FloatTensor)
             model.load_state_dict(shared_model.state_dict())
             Ratio, first_step =[], []
             while np.linalg.norm(object_oriented_goal) >= 0.015 and timeStep <= env._max_episode_steps:
@@ -188,11 +193,12 @@ def test(rank, args, shared_model, counter):
                 object_oriented_goal[2] += 0.03
                 #env.render()
                 action[3] = 0.05
-                obsDataNew, reward, done, info = env.step(action)
+                obsDataNew, reward, done,_, info = env.step(action)
                 timeStep += 1
                 objectPos = obsDataNew['observation'][3:6]
                 object_rel_pos = obsDataNew['observation'][6:9]
-                state_inp = torch.from_numpy(env2.observation(obsDataNew)).type(FloatTensor)
+                #state_inp = torch.from_numpy(env2.observation(obsDataNew)).type(FloatTensor)
+                state_inp = torch.from_numpy(obsDataNew['observation'].flatten()).type(FloatTensor)
                 if timeStep >= env._max_episode_steps: break
 
             while np.linalg.norm(object_rel_pos) >= 0.005 and timeStep <= env._max_episode_steps :
@@ -204,7 +210,7 @@ def test(rank, args, shared_model, counter):
                 action[4] = obsDataNew['observation'][13]/8
                 action[3] = -0.02
 
-                obsDataNew, reward, done, info = env.step(action)
+                obsDataNew, reward, done,_, info = env.step(action)
                 timeStep += 1
 
                 objectPos = obsDataNew['observation'][3:6]
@@ -218,7 +224,7 @@ def test(rank, args, shared_model, counter):
                     action[i] = (goal - objectPos)[i]*6
 
                 action[3] = -0.01
-                obsDataNew, reward, done, info = env.step(action)
+                obsDataNew, reward, done,_, info = env.step(action)
                 timeStep += 1
 
                 objectPos = obsDataNew['observation'][3:6]
@@ -230,7 +236,7 @@ def test(rank, args, shared_model, counter):
                 action = [0, 0, 0, 0, 0, 0]
                 action[3] = -0.01 # keep the gripper closed
 
-                obsDataNew, reward, done, info = env.step(action)
+                obsDataNew, reward, done,_, info = env.step(action)
                 timeStep += 1
 
                 objectPos = obsDataNew['observation'][3:6]
