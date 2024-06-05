@@ -66,8 +66,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
         
         model.load_state_dict(shared_model.state_dict())
         #state_inp = torch.from_numpy(env2.observation(lastObs)).type(FloatTensor)
-        lastObs = lastObs.flatten()
-        state_inp = torch.from_numpy(lastObs).type(FloatTensor)
+        state_inp = torch.from_numpy(lastObs['observation']).type(FloatTensor)
         criterion = nn.MSELoss()
         
         while np.linalg.norm(object_oriented_goal) >= 0.015 and timeStep <= env._max_episode_steps:
