@@ -146,7 +146,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
 def test(rank, args, shared_model, counter):
     
     FloatTensor = torch.cuda.FloatTensor if args.use_cuda else torch.FloatTensor
-    env = gym.make("FetchPickAndPlace-v1")
+    env = gym.make("FetchPickAndPlace-v3")
     #env2 = gym.wrappers.FlattenObservation(env)
 
     model = Actor()
