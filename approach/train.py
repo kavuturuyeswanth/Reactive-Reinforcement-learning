@@ -42,7 +42,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
     
     model.train()
 
-    done = True       
+    terminated = True       
     for num_iter in count():
         with lock:
             counter.value += 1
@@ -90,7 +90,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
             object_oriented_goal[2] += 0.03
            
             action[3] = 0.05
-            obsDataNew, reward, done,_,  info = env.step(action)
+            obsDataNew, reward, terminated,truncated,  info = env.step(action)
             timeStep += 1
             objectPos = obsDataNew['observation'][3:6]
             object_rel_pos = obsDataNew['observation'][6:9]
@@ -109,7 +109,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
             action[4] = obsDataNew['observation'][13]/6
             action[3] = -0.02
 
-            obsDataNew, reward, done,_, info = env.step(action)
+            obsDataNew, reward, terminated,truncated, info = env.step(action)
             timeStep += 1
 
             objectPos = obsDataNew['observation'][3:6]
@@ -123,7 +123,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
                 action[i] = (goal - objectPos)[i]*6
 
             action[3] = -0.01
-            obsDataNew, reward, done,_, info = env.step(action)
+            obsDataNew, reward, terminated,truncated, info = env.step(action)
             timeStep += 1
 
             objectPos = obsDataNew['observation'][3:6]
@@ -135,7 +135,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
             action = [0, 0, 0, 0, 0, 0]
             action[3] = -0.01 # keep the gripper closed
 
-            obsDataNew, reward, done,_, info = env.step(action)
+            obsDataNew, reward, terminated,truncated, info = env.step(action)
             timeStep += 1
 
             objectPos = obsDataNew['observation'][3:6]
@@ -153,7 +153,7 @@ def test(rank, args, shared_model, counter):
     if args.use_cuda:
         model.cuda()
     model.eval()
-    done = True       
+    terminated = True       
     
 
     savefile = os.getcwd() + '/train/mario_curves.csv'
@@ -195,7 +195,7 @@ def test(rank, args, shared_model, counter):
                 object_oriented_goal[2] += 0.03
                 #env.render()
                 action[3] = 0.05
-                obsDataNew, reward, done,_, info = env.step(action)
+                obsDataNew, reward, terminated,truncated, info = env.step(action)
                 timeStep += 1
                 objectPos = obsDataNew['observation'][3:6]
                 object_rel_pos = obsDataNew['observation'][6:9]
@@ -213,7 +213,7 @@ def test(rank, args, shared_model, counter):
                 action[4] = obsDataNew['observation'][13]/8
                 action[3] = -0.02
 
-                obsDataNew, reward, done,_, info = env.step(action)
+                obsDataNew, reward, terminated,truncated, info = env.step(action)
                 timeStep += 1
 
                 objectPos = obsDataNew['observation'][3:6]
@@ -227,7 +227,7 @@ def test(rank, args, shared_model, counter):
                     action[i] = (goal - objectPos)[i]*6
 
                 action[3] = -0.01
-                obsDataNew, reward, done,_, info = env.step(action)
+                obsDataNew, reward, terminated,truncated, info = env.step(action)
                 timeStep += 1
 
                 objectPos = obsDataNew['observation'][3:6]
@@ -239,7 +239,7 @@ def test(rank, args, shared_model, counter):
                 action = [0, 0, 0, 0, 0, 0]
                 action[3] = -0.01 # keep the gripper closed
 
-                obsDataNew, reward, done,_, info = env.step(action)
+                obsDataNew, reward, terminated,truncated, info = env.step(action)
                 timeStep += 1
 
                 objectPos = obsDataNew['observation'][3:6]
@@ -249,7 +249,7 @@ def test(rank, args, shared_model, counter):
             
             if info['is_success'] == 1.0:
                 success +=1
-            if done:
+            if terminated:
                 plot_ratio = np.average(np.array(Ratio), 0)
                 #lastObs = env.reset()
                 if ep_num % 100==0:            
