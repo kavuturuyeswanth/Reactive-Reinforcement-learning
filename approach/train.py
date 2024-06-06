@@ -47,10 +47,10 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
         with lock:
             counter.value += 1
         #print(num_iter, counter.value)
-        lastObs = env.reset()
-        goal = lastObs[0]['desired_goal']
-        objectPos = lastObs[0]['observation'][3:6]
-        object_rel_pos = lastObs[0]['observation'][6:9]
+        lastObs,_ = env.reset()
+        goal = lastObs['desired_goal']
+        objectPos = lastObs['observation'][3:6]
+        object_rel_pos = lastObs['observation'][6:9]
         object_oriented_goal = object_rel_pos.copy()
         object_oriented_goal[2] += 0.03 # first make the gripper go slightly above the object    
         timeStep = 0 #count the total number of timesteps
@@ -169,10 +169,10 @@ def test(rank, args, shared_model, counter):
         success = 0
         while ep_num < 100:
             ep_num +=1            
-            lastObs = env.reset()
-            goal = lastObs[0]['desired_goal']
-            objectPos = lastObs[0]['observation'][3:6]
-            object_rel_pos = lastObs[0]['observation'][6:9]
+            lastObs,_ = env.reset()
+            goal = lastObs['desired_goal']
+            objectPos = lastObs['observation'][3:6]
+            object_rel_pos = lastObs['observation'][6:9]
             object_oriented_goal = object_rel_pos.copy()
             object_oriented_goal[2] += 0.03 # first make the gripper go slightly above the object    
             timeStep = 0
