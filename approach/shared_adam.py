@@ -70,6 +70,6 @@ class SharedAdam(optim.Adam):
                 step_size = group['lr'] * math.sqrt(
                     bias_correction2) / bias_correction1
 
-                p.data.addcdiv_(-step_size, exp_avg, denom)
+                p.data.addcdiv_(tensor1= exp_avg, tensor2= denom, value= -step_size)
 
         return loss
