@@ -1,4 +1,5 @@
-import gym
+import gymnasium as gym
+import gymnasium_robotics
 import random
 import numpy as np
 import argparse
@@ -27,7 +28,7 @@ def ensure_shared_grads(model, shared_model):
 def train(rank, args, shared_model, counter, lock, optimizer=None):
     FloatTensor = torch.cuda.FloatTensor if args.use_cuda else torch.FloatTensor
     
-    env = gym.make("FetchPickAndPlace-v1")
+    env = gym.make("FetchPickAndPlace-v3")
     env2 = gym.wrappers.FlattenDictWrapper(env, dict_keys=['observation', 'desired_goal'])
 
     model = Actor()
@@ -46,12 +47,12 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
     
     model.train()
 
-    done = True       
+    terminated = True       
     for num_iter in count():
         with lock:
             counter.value += 1
         #print(num_iter, counter.value)
-        lastObs = env.reset()
+        lastObs,_ = env.reset()
         goal = lastObs['desired_goal']
         objectPos = lastObs['observation'][3:6]
         object_rel_pos = lastObs['observation'][6:9]
@@ -81,7 +82,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
 
             action[3] = 0.05 #open
 
-            obsDataNew, reward, done, info = env.step(action)
+            obsDataNew, reward, terminate, truncated, info = env.step(action)
             timeStep += 1
 
             objectPos = obsDataNew['observation'][3:6]
@@ -116,7 +117,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
             ensure_shared_grads(model, shared_model)
             optimizer.step()
             action[3]= -0.01 
-            obsDataNew, reward, done, info = env.step(action)
+            obsDataNew, reward, terminated, truncated, info = env.step(action)
             timeStep += 1
 
             objectPos = obsDataNew['observation'][3:6]
@@ -131,7 +132,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
                 action[i] = (goal - objectPos)[i]*6
 
             action[3] = -0.01
-            obsDataNew, reward, done, info = env.step(action)
+            obsDataNew, reward, terminated, truncated, info = env.step(action)
             timeStep += 1
 
             objectPos = obsDataNew['observation'][3:6]
@@ -143,7 +144,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
             action = [0, 0, 0, 0, 0, 0]
             action[3] = -0.01 # keep the gripper closed
 
-            obsDataNew, reward, done, info = env.step(action)
+            obsDataNew, reward, terminated, truncated, info = env.step(action)
             timeStep += 1
 
             objectPos = obsDataNew['observation'][3:6]
@@ -154,7 +155,7 @@ def train(rank, args, shared_model, counter, lock, optimizer=None):
 def test(rank, args, shared_model, counter):
     
     FloatTensor = torch.cuda.FloatTensor if args.use_cuda else torch.FloatTensor
-    env = gym.make("FetchPickAndPlace-v1")
+    env = gym.make("FetchPickAndPlace-v3")
     env2 = gym.wrappers.FlattenDictWrapper(env, dict_keys=['observation', 'desired_goal'])
 
     model = Actor()
@@ -177,7 +178,7 @@ def test(rank, args, shared_model, counter):
         success = 0
         while ep_num < 100:
             ep_num +=1            
-            lastObs = env.reset()
+            lastObs,_ = env.reset()
             goal = lastObs['desired_goal']
             objectPos = lastObs['observation'][3:6]
             object_rel_pos = lastObs['observation'][6:9]
@@ -196,7 +197,7 @@ def test(rank, args, shared_model, counter):
 
                 action[3] = 0.05 #open
 
-                obsDataNew, reward, done, info = env.step(action)
+                obsDataNew, reward, terminated, truncated, info = env.step(action)
                 timeStep += 1
 
                 objectPos = obsDataNew['observation'][3:6]
@@ -215,7 +216,7 @@ def test(rank, args, shared_model, counter):
                     #action[i] = object_rel_pos[i]*6
                 action[4] = act_tensor[3].cpu().detach().numpy()
                 action[3]= -0.02 
-                obsDataNew, reward, done, info = env.step(action)
+                obsDataNew, reward, terminated, truncated, info = env.step(action)
                 timeStep += 1
 
                 objectPos = obsDataNew['observation'][3:6]
@@ -230,7 +231,7 @@ def test(rank, args, shared_model, counter):
                     action[i] = (goal - objectPos)[i]*6
 
                 action[3] = -0.01
-                obsDataNew, reward, done, info = env.step(action)
+                obsDataNew, reward, terminated, truncated, info = env.step(action)
                 timeStep += 1
 
                 objectPos = obsDataNew['observation'][3:6]
@@ -242,7 +243,7 @@ def test(rank, args, shared_model, counter):
                 action = [0, 0, 0, 0, 0, 0]
                 action[3] = -0.01 # keep the gripper closed
 
-                obsDataNew, reward, done, info = env.step(action)
+                obsDataNew, reward, terminated, truncated, info = env.step(action)
                 timeStep += 1
 
                 objectPos = obsDataNew['observation'][3:6]
@@ -252,7 +253,7 @@ def test(rank, args, shared_model, counter):
             
             if info['is_success'] == 1.0:
                 success +=1
-            if done:
+            if terminated:
                 #plot_ratio = np.average(np.array(Ratio), 0)
                 #lastObs = env.reset()
                 if ep_num % 100==0:            
